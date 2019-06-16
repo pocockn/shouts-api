@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"github.com/pocockn/shouts-api/config"
+	"github.com/pocockn/shouts-api/services"
 	"net/http"
 	"strconv"
 
@@ -11,17 +13,20 @@ import (
 
 // ShoutHandler implements the repository interface.
 type ShoutHandler struct {
-	Repo shouts.Repository
+	Repo          shouts.Repository
+	UploadService services.Upload
 }
 
 // NewShoutHandler creates a new shouts handler with the routes.
-func NewShoutHandler(e *echo.Echo, repo shouts.Repository) {
+func NewShoutHandler(config config.Config, e *echo.Echo, repo shouts.Repository) {
 	handler := &ShoutHandler{
-		Repo: repo,
+		Repo:          repo,
+		UploadService: services.NewUpload(config, config.S3.Client),
 	}
 
 	e.GET("/shouts/:id", handler.FetchShout)
 	e.GET("/shouts", handler.FetchAll)
+	e.POST("/shout", handler.Store)
 }
 
 // FetchShout gets a shout from it's ID.
@@ -53,21 +58,16 @@ func (s *ShoutHandler) FetchAll(c echo.Context) error {
 
 // Store takes a shout and stores it in the DB.
 func (s *ShoutHandler) Store(c echo.Context) error {
-	// move all this into controllers when refactoring
-	// get the two images
 	sourceFile, err := c.FormFile("source")
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, nil)
 	}
-	src, err := sourceFile.Open()
+
+	err = s.UploadService.UploadToS3(sourceFile)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, nil)
+		return err
 	}
-	defer src.Close()
 
-	// upload both images to s3
-	return nil
-	// store their s3 key name (file name) on the shout object
-
+	return c.JSON(http.StatusCreated, nil)
 	// perform the lambda function analysis
 }

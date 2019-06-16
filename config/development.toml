@@ -10,5 +10,6 @@ databaseName = "docker_pocockn"
 port = "3306"
 
 [s3]
-domain = "http://s3.local.shouts.co.uk:4569"
+### domain = "http://s3.local.shouts.co.uk:4569"
+domain = "http://s3.eu-west-1.amazonaws.com"
 bucket = "image-analysis-shouts"
