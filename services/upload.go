@@ -25,29 +25,43 @@ func NewUpload(config config.Config, s3Client *s3.Client) Upload {
 	}
 }
 
-// UploadToS3 takes a file from a form and uploads it to S3.
-func (u Upload) UploadToS3(sourceFile *multipart.FileHeader) error {
-	key := sourceFile.Filename
-	object := s3.NewObject(
-		u.config.S3.Bucket,
-		key,
-		u.s3Client,
-	)
-	buffer := make([]byte, sourceFile.Size)
+// UploadToS3 takes a number of files from a form and uploads it to S3.
+func (u Upload) MultiUpload(files ...*multipart.FileHeader) error {
+	errorChannel := make(chan error)
 
-	src, err := sourceFile.Open()
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err)
+	for _, f := range files {
+		go func(f *multipart.FileHeader) {
+			key := f.Filename
+			object := s3.NewObject(
+				u.config.S3.Bucket,
+				key,
+				u.s3Client,
+			)
+			buffer := make([]byte, f.Size)
+
+			src, err := f.Open()
+			if err != nil {
+				errorChannel <- echo.NewHTTPError(http.StatusInternalServerError, err)
+			}
+
+			_, err = src.Read(buffer)
+			if err != nil {
+				errorChannel <- echo.NewHTTPError(http.StatusInternalServerError, err)
+			}
+
+			err = object.Put(bytes.NewReader(buffer), http.DetectContentType(buffer))
+			if err != nil {
+				errorChannel <- echo.NewHTTPError(http.StatusInternalServerError, err)
+			}
+
+			errorChannel <- nil
+		}(f)
 	}
 
-	_, err = src.Read(buffer)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err)
-	}
-
-	err = object.Put(bytes.NewReader(buffer), http.DetectContentType(buffer))
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err)
+	for range files {
+		if err := <-errorChannel; err != nil {
+			return err
+		}
 	}
 
 	return nil

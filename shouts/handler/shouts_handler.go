@@ -63,11 +63,17 @@ func (s *ShoutHandler) Store(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, nil)
 	}
 
-	err = s.UploadService.UploadToS3(sourceFile)
+	targetFile, err := c.FormFile("target")
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, nil)
+	}
+
+	err = s.UploadService.MultiUpload(sourceFile, targetFile)
 	if err != nil {
 		return err
 	}
 
-	return c.JSON(http.StatusCreated, nil)
 	// perform the lambda function analysis
+
+	return c.JSON(http.StatusCreated, nil)
 }
