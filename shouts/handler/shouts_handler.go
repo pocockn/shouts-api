@@ -102,12 +102,12 @@ func (s *ShoutHandler) Store(c echo.Context) error {
 		return err
 	}
 
-	log.Infof("ARN %s", s.Config.SNSConfig.TopicARN)
+	log.Infof("ARN %s", s.Config.SNS.Arn)
 
 	snsClient := *awsWrappersSNS.NewClient(nil, false, nil)
 	messageID, err := snsClient.PublishMessage(
 		string(snsMessagePayload),
-		s.Config.SNSConfig.TopicARN,
+		s.Config.SNS.Arn,
 	)
 	if err != nil {
 		return err
