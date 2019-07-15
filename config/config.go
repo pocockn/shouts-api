@@ -13,6 +13,7 @@ type (
 	Config struct {
 		Database Database
 		S3       S3Config
+		SNS      SNSConfig
 	}
 
 	// Database holds database values in our config.
@@ -31,6 +32,11 @@ type (
 		Client *s3.Client
 		Domain string
 		Bucket string
+	}
+
+	// SNSConfig holds the topic ARN for the image similarity SNS topic.
+	SNSConfig struct {
+		Arn string
 	}
 )
 
