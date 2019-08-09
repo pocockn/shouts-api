@@ -82,7 +82,6 @@ func (s *ShoutHandler) Store(c echo.Context) error {
 		return err
 	}
 
-	// perform the lambda function analysis
 	imageSimilarityPayload, err := lambda.NewRawJsonImageSimilarity(
 		targetFile.Filename,
 		sourceFile.Filename,
@@ -101,8 +100,6 @@ func (s *ShoutHandler) Store(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-
-	log.Infof("ARN %s", s.Config.SNS.Arn)
 
 	snsClient := *awsWrappersSNS.NewClient(nil, false, nil)
 	messageID, err := snsClient.PublishMessage(
